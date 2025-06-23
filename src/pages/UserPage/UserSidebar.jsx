@@ -7,7 +7,7 @@ const UserSidebar = ({ properties = [], currentFilters, onFilterChange }) => {
   const MIN_PRICE = 1000;
   const MAX_PRICE = 1000000;
   const MIN_SQFT = 0;
-  const MAX_SQFT = 100000;
+  const MAX_SQFT = 1000000;
   const [squareSize, setSquareSize] = useState(["", ""]);
   const [priceRange, setPriceRange] = useState([MIN_PRICE, MAX_PRICE]);
   const [anyPrice, setAnyPrice] = useState(false);
@@ -306,7 +306,7 @@ const UserSidebar = ({ properties = [], currentFilters, onFilterChange }) => {
         </div>
 
         {/* Logout Button */}
-        <div className="flex items-center justify-center mt-8 pb-8 space-x-3">
+        <div className="flex items-center justify-center pb-8 mt-8 space-x-3">
           <button
             onClick={handleLogOut}
             className="px-4 py-2 text-white bg-red-600 rounded-md hover:bg-red-700"

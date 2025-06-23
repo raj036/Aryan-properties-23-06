@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import PropertyForm from "./PropertyForm";
 import axios from "../helper/axios";
 import Swal from "sweetalert2";
@@ -7,6 +7,7 @@ import { FaEdit } from "react-icons/fa";
 import { BsDownload } from "react-icons/bs";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
+import { Pagination } from "@mui/material";
 
 const Property = () => {
   const [showPropertyForm, setShowPropertyForm] = useState(false);
@@ -22,6 +23,16 @@ const Property = () => {
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [selectedProperties, setSelectedProperties] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
+
+  const [pagination, setPagination] = useState({
+    page: 1,
+    pageSize: 10, // Reduced page size for better testing
+    totalCount: 0,
+  });
+
+
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
 
   useEffect(() => {
     fetchProperties();
@@ -84,7 +95,7 @@ const Property = () => {
 
   const fetchProperties = async () => {
     try {
-      const response = await axios.get("/api/get_all_properties/", {
+      const response = await axios.get(`/api/get_all_properties/?from_area=${from}&to_area=${to}`, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -95,7 +106,7 @@ const Property = () => {
       if (!response.data) throw new Error("No data received");
 
       // Transform the API response to match the expected structure
-      const transformedProperties = response.data.map((property) => ({
+      const transformedProperties = response?.data?.results.map((property) => ({
         furnished_details: property.furnished_details,
         created_by: property.user_name || "-",
         building: property.building_name || "-",
@@ -148,11 +159,15 @@ const Property = () => {
     }
   };
 
-  const filteredProperties = properties.filter((property) =>
-    Object.values(property).some((value) =>
-      String(value).toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  );
+  const filteredProperties = useMemo(() => {
+    if (!searchTerm) return properties;
+
+    return properties.filter((property) =>
+      Object.values(property).some((value) =>
+        String(value).toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    );
+  }, [properties, searchTerm]);
 
   const handleDelete = async (id) => {
     Swal.fire({
@@ -998,73 +1013,73 @@ const Property = () => {
       Swal.fire("Error", "Please select at least one property", "error");
       return;
     }
-  
+
     // Create workbook and worksheet
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet([]);
-  
+
     // Check if any selected property has furnished_details
     const hasFurnishedDetails = selectedProperties.some(
       (property) =>
         property.furnished_details !== null &&
         property.furnished_details !== undefined
     );
-  
+
     // Define headers based on whether furnished_details exists
     const headers = hasFurnishedDetails
       ? [
-          "Building Name",
-          "Location",
-          "Sublocation",
-          "Built-up Area (sq.ft.)",
-          "Carpet Area (sq.ft.)",
-          "Terrace ",
-          "Floor/Unit/Wing",
-          "License Fees",
-          "Rate",
-          "Contact Person Name 1",
-          "Contact Person Number 1",
-          "Contact Person Name 2",
-          "Contact Person Number 2",
-          "Referred By",
-          "Executive Name",
-          "Date",
-          "Work Station",
-          "Meeting Rooms",
-          "Cubicle Type",
-          "Linear Type",
-          "Both Type",
-          "Cabins",
-          "Conference Rooms",
-          "Cafeteria Seats",
-          "Washrooms",
-          "Pantry Area",
-          "Backup UPS Room",
-          "Server Electrical Room",
-          "Reception Waiting Area",
-        ]
+        "Building Name",
+        "Location",
+        "Sublocation",
+        "Built-up Area (sq.ft.)",
+        "Carpet Area (sq.ft.)",
+        "Terrace ",
+        "Floor/Unit/Wing",
+        "License Fees",
+        "Rate",
+        "Contact Person Name 1",
+        "Contact Person Number 1",
+        "Contact Person Name 2",
+        "Contact Person Number 2",
+        "Referred By",
+        "Executive Name",
+        "Date",
+        "Work Station",
+        "Meeting Rooms",
+        "Cubicle Type",
+        "Linear Type",
+        "Both Type",
+        "Cabins",
+        "Conference Rooms",
+        "Cafeteria Seats",
+        "Washrooms",
+        "Pantry Area",
+        "Backup UPS Room",
+        "Server Electrical Room",
+        "Reception Waiting Area",
+      ]
       : [
-          "Building Name",
-          "Location",
-          "Sublocation",
-          "Built-up Area (sq.ft.)",
-          "Carpet Area (sq.ft.)",
-          "Terrace ",
-          "Floor/Unit/Wing",
-          "License Fees",
-          "Rate",
-          "Contact Person Name 1",
-          "Contact Person Number 1",
-          "Contact Person Name 2",
-          "Contact Person Number 2",
-          "Referred By",
-          "Executive Name",
-          "Date",
-        ];
-  
+        "Building Name",
+        "Location",
+        "Sublocation",
+        "Built-up Area (sq.ft.)",
+        "Carpet Area (sq.ft.)",
+        "Terrace ",
+        "Floor/Unit/Wing",
+        "License Fees",
+        "Rate",
+        "Contact Person Name 1",
+        "Contact Person Number 1",
+        "Contact Person Name 2",
+        "Contact Person Number 2",
+        "Referred By",
+        "Executive Name",
+        "Date",
+      ];
+
     // Convert selected properties into a row-wise format
     const data = [headers]; // First row = headers
-  
+
     selectedProperties.forEach((property) => {
       const floorDetails =
         property.floor
@@ -1073,7 +1088,7 @@ const Property = () => {
               `Floor: ${ele.floor} | Unit: ${ele.unit_number} | Wing: ${ele.wing}`
           )
           .join("\n") || "-";
-  
+
       const rowData = [
         property.building || "-",                  // "Building Name"
         property.areas_name || "-",                // "Location" (mapped from areas[0].area_name)
@@ -1092,7 +1107,7 @@ const Property = () => {
         property.created_by || "-",                // "Executive Name"
         property.created_date?.split("T")[0] || "-", // "Date"
       ];
-  
+
       // Add furnished_details columns at the end if present
       if (hasFurnishedDetails) {
         rowData.push(
@@ -1111,19 +1126,19 @@ const Property = () => {
           property.furnished_details?.reception_waiting_area ? "Yes" : "No"  // "Reception Waiting Area"
         );
       }
-  
+
       data.push(rowData);
     });
-  
+
     // Add data to worksheet
     XLSX.utils.sheet_add_aoa(ws, data, { origin: "A1" });
-  
+
     // Auto-adjust column widths
     ws["!cols"] = headers.map(() => ({ wch: 25 }));
-  
+
     // Add sheet to workbook
     XLSX.utils.book_append_sheet(wb, ws, "Property Details");
-  
+
     // Save the Excel file
     XLSX.writeFile(
       wb,
@@ -1293,6 +1308,30 @@ const Property = () => {
   //       },
   //     });
   //   };
+
+  
+  // Update your useEffect for fetching data
+  useEffect(() => {
+    fetchProperties();
+    // Remove pagination.page from dependencies to prevent unnecessary re-fetches
+  }, [from, to]);
+  
+  const paginatedProperties = useMemo(() => {
+    const startIndex = (pagination.page - 1) * pagination.pageSize;
+    return filteredProperties.slice(
+      startIndex,
+      startIndex + pagination.pageSize
+    );
+  }, [filteredProperties, pagination.page, pagination.pageSize]);
+
+  const totalPages = useMemo(() => {
+    return Math.ceil(filteredProperties.length / pagination.pageSize);
+  }, [filteredProperties, pagination.pageSize]);
+  
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  }, [searchTerm]);
+
   const showContactDetails = (property) => {
     // Log the property to debug
     // console.log("Property in showContactDetails:", property);
@@ -1310,75 +1349,61 @@ const Property = () => {
         <div class="furnished-details-section">
           <div class="furnished-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
             <div>
-              <p><strong>Workstations:</strong> ${
-                property.furnished_details.workstations || "-"
-              }</p>
-              <p><strong>Cubicle Type:</strong> ${
-                property.furnished_details.workstation_type_cubicle
-                  ? "Yes"
-                  : "No"
-              }</p>
-              <p><strong>Linear Type:</strong> ${
-                property.furnished_details.workstation_type_linear
-                  ? "Yes"
-                  : "No"
-              }</p>
-              <p><strong>Both Types:</strong> ${
-                property.furnished_details.workstation_type_both ? "Yes" : "No"
-              }</p>
-              <p><strong>Cabins:</strong> ${
-                property.furnished_details.cabins || "-"
-              }</p>
+              <p><strong>Workstations:</strong> ${property.furnished_details.workstations || "-"
+        }</p>
+              <p><strong>Cubicle Type:</strong> ${property.furnished_details.workstation_type_cubicle
+          ? "Yes"
+          : "No"
+        }</p>
+              <p><strong>Linear Type:</strong> ${property.furnished_details.workstation_type_linear
+          ? "Yes"
+          : "No"
+        }</p>
+              <p><strong>Both Types:</strong> ${property.furnished_details.workstation_type_both ? "Yes" : "No"
+        }</p>
+              <p><strong>Cabins:</strong> ${property.furnished_details.cabins || "-"
+        }</p>
             </div>
             <div>
-              <p><strong>Meeting Rooms:</strong> ${
-                property.furnished_details.meeting_rooms || "-"
-              }</p>
-              <p><strong>Conference Rooms:</strong> ${
-                property.furnished_details.conference_rooms || "-"
-              }</p>
-              <p><strong>Cafeteria Seats:</strong> ${
-                property.furnished_details.cafeteria_seats || "-"
-              }</p>
-              <p><strong>Washrooms:</strong> ${
-                property.furnished_details.washrooms || "-"
-              }</p>
+              <p><strong>Meeting Rooms:</strong> ${property.furnished_details.meeting_rooms || "-"
+        }</p>
+              <p><strong>Conference Rooms:</strong> ${property.furnished_details.conference_rooms || "-"
+        }</p>
+              <p><strong>Cafeteria Seats:</strong> ${property.furnished_details.cafeteria_seats || "-"
+        }</p>
+              <p><strong>Washrooms:</strong> ${property.furnished_details.washrooms || "-"
+        }</p>
             </div>
           </div>
 
           <div className="additional-amenities" style="margin-top: 10px;">
-            ${
-              property.furnished_details.pantry_area ||
-              property.furnished_details.backup_ups_room ||
-              property.furnished_details.server_electrical_room ||
-              property.furnished_details.reception_waiting_area
-                ? `
+            ${property.furnished_details.pantry_area ||
+          property.furnished_details.backup_ups_room ||
+          property.furnished_details.server_electrical_room ||
+          property.furnished_details.reception_waiting_area
+          ? `
               <p><strong>Additional Amenities:</strong></p>
               <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-                ${
-                  property.furnished_details.pantry_area
-                    ? '<span style="background-color: #e9ecef; padding: 5px; border-radius: 4px;">Pantry Area</span>'
-                    : ""
-                }
-                ${
-                  property.furnished_details.backup_ups_room
-                    ? '<span style="background-color: #e9ecef; padding: 5px; border-radius: 4px;">Backup UPS Room</span>'
-                    : ""
-                }
-                ${
-                  property.furnished_details.server_electrical_room
-                    ? '<span style="background-color: #e9ecef; padding: 5px; border-radius: 4px;">Server Electrical Room</span>'
-                    : ""
-                }
-                ${
-                  property.furnished_details.reception_waiting_area
-                    ? '<span style="background-color: #e9ecef; padding: 5px; border-radius: 4px;">Reception & Waiting Area</span>'
-                    : ""
-                }
+                ${property.furnished_details.pantry_area
+            ? '<span style="background-color: #e9ecef; padding: 5px; border-radius: 4px;">Pantry Area</span>'
+            : ""
+          }
+                ${property.furnished_details.backup_ups_room
+            ? '<span style="background-color: #e9ecef; padding: 5px; border-radius: 4px;">Backup UPS Room</span>'
+            : ""
+          }
+                ${property.furnished_details.server_electrical_room
+            ? '<span style="background-color: #e9ecef; padding: 5px; border-radius: 4px;">Server Electrical Room</span>'
+            : ""
+          }
+                ${property.furnished_details.reception_waiting_area
+            ? '<span style="background-color: #e9ecef; padding: 5px; border-radius: 4px;">Reception & Waiting Area</span>'
+            : ""
+          }
               </div>
               `
-                : ""
-            }
+          : ""
+        }
           </div>
         </div>
       </div>`,
@@ -1440,11 +1465,10 @@ const Property = () => {
                 }}
                 disabled={selectedProperties.length === 0}
                 className={`px-3 py-2 font-medium rounded-md transition-all duration-200 
-          ${
-            selectedProperties.length === 0
-              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-              : "bg-red-500 text-white hover:bg-red-600"
-          }`}
+          ${selectedProperties.length === 0
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-red-500 text-white hover:bg-red-600"
+                  }`}
               >
                 Clear Selection
               </button>
@@ -1455,11 +1479,10 @@ const Property = () => {
               onClick={() => downloadAsExcel(selectedProperties)} // Updated to remove unnecessary event param
               disabled={selectedProperties.length === 0}
               className={`px-5 flex items-center gap-2 py-2 font-medium rounded-md shadow-md transition-all duration-200 
-    ${
-      selectedProperties.length === 0
-        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-        : "bg-blue-600 text-white hover:bg-blue-700"
-    }`}
+    ${selectedProperties.length === 0
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-blue-600 text-white hover:bg-blue-700"
+                }`}
             >
               <BsDownload className="text-lg" />
               <span>Export to Excel</span>
@@ -1549,19 +1572,18 @@ const Property = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredProperties
-                    .map((property, index) => (
-                      <tr
-                        key={index}
-                        className="cursor-pointer hover:bg-gray-50"
-                        onClick={(e) => {
-                          showContactDetails(property); // First function
-                          if (!e.target.closest('input[type="checkbox"]')) {
-                            showContactDetails(property); // Second function
-                          }
-                        }}
-                      >
-                        {/* <td
+                  paginatedProperties.map((property, index) => (
+                    <tr
+                      key={index}
+                      className="cursor-pointer hover:bg-gray-50"
+                      onClick={(e) => {
+                        showContactDetails(property); // First function
+                        if (!e.target.closest('input[type="checkbox"]')) {
+                          showContactDetails(property); // Second function
+                        }
+                      }}
+                    >
+                      {/* <td
                         className="px-4 py-2 text-center break-all border"
                         onClick={(e) => e.stopPropagation()}
                       >
@@ -1574,107 +1596,107 @@ const Property = () => {
                           className="w-4 h-4"
                         />
                       </td> */}
-                        <td
-                          className="px-4 py-2 text-center break-all border"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedProperties.some(
-                              (p) => p.property_code === property.property_code
-                            )}
-                            onChange={() => handleCheckboxChange(property)}
-                            className="w-4 h-4 accent-blue-800"
-                          />
-                        </td>
-                        <td className="px-4 py-2 border text-wrap">
-                          {property.building}
-                        </td>
-                        {/* <td className="px-4 py-2 border text-wrap">
+                      <td
+                        className="px-4 py-2 text-center break-all border"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedProperties.some(
+                            (p) => p.property_code === property.property_code
+                          )}
+                          onChange={() => handleCheckboxChange(property)}
+                          className="w-4 h-4 accent-blue-800"
+                        />
+                      </td>
+                      <td className="px-4 py-2 border text-wrap">
+                        {property.building}
+                      </td>
+                      {/* <td className="px-4 py-2 border text-wrap">
                               {property.city_name}
                             </td> */}
-                        {/* <td className="px-4 py-2 border text-wrap">
+                      {/* <td className="px-4 py-2 border text-wrap">
                               {property.east_west}
                             </td>
                             <td className="px-4 py-2 border text-wrap">
                               {property.address}
                             </td> */}
-                        <td className="px-4 py-2 border text-wrap">
-                          {property.areas_name}
-                        </td>
-                        <td className="px-4 py-2 border text-wrap">
-                          {property.area_name}
-                        </td>
-                        {/* <td className="px-4 py-2 border text-wrap">
+                      <td className="px-4 py-2 border text-wrap">
+                        {property.areas_name}
+                      </td>
+                      <td className="px-4 py-2 border text-wrap">
+                        {property.area_name}
+                      </td>
+                      {/* <td className="px-4 py-2 border text-wrap">
                               {property.description}
                             </td> */}
-                        <td className="px-4 py-2 border text-wrap">
-                          {property.built_up_area}{" "}
-                        </td>
+                      <td className="px-4 py-2 border text-wrap">
+                        {property.built_up_area}{" "}
+                      </td>
 
-                        <td className="px-4 py-2 border text-wrap">
-                          {property.carpet_up_area}{" "}
-                        </td>
-                        <td className="px-4 py-2 border text-wrap">
-                          {property.terrace_area}{" "}
-                        </td>
-                        <td className="px-4 py-2 border text-wrap">
-                          <table
-                            style={{
-                              width: "100%",
-                              borderCollapse: "collapse",
-                            }}
-                          >
-                            <tbody>
-                              {property.floor && property.floor.length > 0 ? (
-                                property.floor.map((ele, index) => (
-                                  <tr key={index}>
-                                    <td
-                                      style={{
-                                        padding: "3px",
-                                        border: "1px solid #ccc",
-                                        textAlign: "center",
-                                      }}
-                                    >
-                                      {ele.floor}
-                                    </td>
-                                    {/* <td style={{ padding: '3px', border: '1px solid #ccc', textAlign: 'center' }}>{ele.unit_number}</td> */}
-                                    <td
-                                      style={{
-                                        padding: "3px",
-                                        border: "1px solid #ccc",
-                                        textAlign: "center",
-                                      }}
-                                    >
-                                      {ele.wing}
-                                    </td>
-                                  </tr>
-                                ))
-                              ) : (
-                                <tr>
+                      <td className="px-4 py-2 border text-wrap">
+                        {property.carpet_up_area}{" "}
+                      </td>
+                      <td className="px-4 py-2 border text-wrap">
+                        {property.terrace_area}{" "}
+                      </td>
+                      <td className="px-4 py-2 border text-wrap">
+                        <table
+                          style={{
+                            width: "100%",
+                            borderCollapse: "collapse",
+                          }}
+                        >
+                          <tbody>
+                            {property.floor && property.floor.length > 0 ? (
+                              property.floor.map((ele, index) => (
+                                <tr key={index}>
                                   <td
-                                    colSpan="3"
                                     style={{
                                       padding: "3px",
                                       border: "1px solid #ccc",
                                       textAlign: "center",
                                     }}
                                   >
-                                    -
+                                    {ele.floor}
+                                  </td>
+                                  {/* <td style={{ padding: '3px', border: '1px solid #ccc', textAlign: 'center' }}>{ele.unit_number}</td> */}
+                                  <td
+                                    style={{
+                                      padding: "3px",
+                                      border: "1px solid #ccc",
+                                      textAlign: "center",
+                                    }}
+                                  >
+                                    {ele.wing}
                                   </td>
                                 </tr>
-                              )}
-                            </tbody>
-                          </table>
-                        </td>
-                        <td className="px-4 py-2 border text-wrap">
-                          {property.rental_psf}
-                        </td>
+                              ))
+                            ) : (
+                              <tr>
+                                <td
+                                  colSpan="3"
+                                  style={{
+                                    padding: "3px",
+                                    border: "1px solid #ccc",
+                                    textAlign: "center",
+                                  }}
+                                >
+                                  -
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </td>
+                      <td className="px-4 py-2 border text-wrap">
+                        {property.rental_psf}
+                      </td>
 
-                        <td className="px-4 py-2 border text-wrap">
-                          {property.outright_rate_psf}
-                        </td>
-                        {/* <td className="px-4 py-2 border text-wrap">
+                      <td className="px-4 py-2 border text-wrap">
+                        {property.outright_rate_psf}
+                      </td>
+                      {/* <td className="px-4 py-2 border text-wrap">
                               {property.poss_status}
                             </td>
                             <td className="px-4 py-2 border text-wrap">
@@ -1683,27 +1705,27 @@ const Property = () => {
                             <td className="px-4 py-2 border text-wrap">
                               {property.builderaddress}
                             </td> */}
-                        <td className="px-4 py-2 border text-wrap">
-                          {property.contact_person1}
-                        </td>
-                        <td className="px-4 py-2 border text-wrap">
-                          {property.conatact_person_number_1}
-                        </td>
-                        <td className="px-4 py-2 border text-wrap">
-                          {property.contact_person2}
-                        </td>
-                        <td className="px-4 py-2 border text-wrap">
-                          {property.conatact_person_number_2}
-                        </td>
+                      <td className="px-4 py-2 border text-wrap">
+                        {property.contact_person1}
+                      </td>
+                      <td className="px-4 py-2 border text-wrap">
+                        {property.conatact_person_number_1}
+                      </td>
+                      <td className="px-4 py-2 border text-wrap">
+                        {property.contact_person2}
+                      </td>
+                      <td className="px-4 py-2 border text-wrap">
+                        {property.conatact_person_number_2}
+                      </td>
 
-                        <td className="px-4 py-2 border text-wrap">
-                          {property.reffered_by}
-                        </td>
-                        <td className="px-4 py-2 border text-wrap">
-                          {property.created_by}
-                        </td>
+                      <td className="px-4 py-2 border text-wrap">
+                        {property.reffered_by}
+                      </td>
+                      <td className="px-4 py-2 border text-wrap">
+                        {property.created_by}
+                      </td>
 
-                        {/* <td className="px-4 py-2 break-words whitespace-normal border">
+                      {/* <td className="px-4 py-2 break-words whitespace-normal border">
                           {property.remarks && property.remarks.length > 50 ? (
                             <div>
                               {expandedRemarks[property.property_code] ? (
@@ -1738,32 +1760,32 @@ const Property = () => {
                             property.remarks || "-"
                           )}
                         </td> */}
-                        <td className="px-4 py-2 border text-wrap">
-                          {property.created_date.split("T")[0]}
-                        </td>
-                        <td className="px-4 py-2 break-all border text-wrap">
-                          <div className="flex justify-center gap-4">
-                            <FaEdit
-                              className="text-blue-600 cursor-pointer"
-                              onClick={(e) => {
-                                // try {
-                                e.stopPropagation();
-                                setEditProperty(true);
-                                setProperty(property);
-                                // console.log(property, "edit prop")
-                              }}
-                            />
-                            <MdDelete
-                              className="text-red-600 cursor-pointer"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDelete(property?.property_code);
-                              }}
-                            />
-                          </div>
-                        </td>
+                      <td className="px-4 py-2 border text-wrap">
+                        {property.created_date.split("T")[0]}
+                      </td>
+                      <td className="px-4 py-2 break-all border text-wrap">
+                        <div className="flex justify-center gap-4">
+                          <FaEdit
+                            className="text-blue-600 cursor-pointer"
+                            onClick={(e) => {
+                              // try {
+                              e.stopPropagation();
+                              setEditProperty(true);
+                              setProperty(property);
+                              // console.log(property, "edit prop")
+                            }}
+                          />
+                          <MdDelete
+                            className="text-red-600 cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(property?.property_code);
+                            }}
+                          />
+                        </div>
+                      </td>
 
-                        {/* <td className="px-4 py-2 break-all border text-wrap">
+                      {/* <td className="px-4 py-2 break-all border text-wrap">
                         <div className="relative">
                           <button
                             className="flex items-center gap-2 px-3 py-2 text-blue-700 transition duration-200 border border-blue-200 rounded-md shadow-sm bg-blue-50 hover:bg-blue-100"
@@ -1821,8 +1843,8 @@ const Property = () => {
                           )}
                         </div>
                       </td> */}
-                      </tr>
-                    ))
+                    </tr>
+                  ))
                     .reverse()
                 )}
               </tbody>
@@ -1830,6 +1852,30 @@ const Property = () => {
           )}
         </div>
       )}
+      <div className="flex justify-center mt-4">
+        <Pagination
+          count={totalPages}
+          page={pagination.page}
+          onChange={(e, value) =>
+            setPagination((prev) => ({ ...prev, page: value }))
+          }
+          color="primary"
+          sx={{
+            "& .MuiPaginationItem-root": {
+              color: "black",
+            },
+            "& .Mui-selected": {
+              backgroundColor: "#BD695D",
+              color: "white",
+              "&:hover": {
+                backgroundColor: "#A13727",
+              },
+            },
+          }}
+          showFirstButton
+          showLastButton
+        />
+      </div>
     </div>
   );
 };

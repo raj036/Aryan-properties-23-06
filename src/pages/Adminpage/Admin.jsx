@@ -48,21 +48,48 @@ const Dashboard = () => {
     }
   }
 
-  const fetchProperties = async () => {
+  // const fetchProperties = async () => {
+  //   try {
+  //     const response = await axios.get("/api/get_all_properties/", {
+  //       headers: { Authorization: `Bearer ${token}`, accept: "application/json" },
+  //     });
+  //     setPropertyCount(response.data.length);
+  //   } catch (e) {
+  //     //console.error(e);
+  //   }
+  // };
+
+      const TotalCountData = async () => {
     try {
-      const response = await axios.get("/api/get_all_properties/", {
-        headers: { Authorization: `Bearer ${token}`, accept: "application/json" },
-      });
-      setPropertyCount(response.data.length);
+      const response = await axios.get(
+        "/aryan_properties/api/get_all_properties/",
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      console.log(response.data.total);
+      setPropertyCount(response.data.total);
+      //  setTotalCount(response.data.total);
+
+      //  setTotalPage(response.data.total);
+      // setPagination((prev) => ({
+      //   ...prev,
+      //   totalCount: response.data.total,
+      //   totalPages: Math.ceil(response.data.total / prev.pageSize),
+      // }));
     } catch (e) {
-      //console.error(e);
+      console.log(e);
     }
   };
 
   useEffect(() => {
     fetchUsers();
     fetchClients();
-    fetchProperties();
+    // fetchProperties();
+    TotalCountData();
   }, []);
 
   useEffect(() => {
