@@ -108,7 +108,7 @@ const UserDashboard = () => {
   useEffect(() => {
     fetchProperties();
     FetchfilterArea();
-  }, [pagination.page, from, to]);
+  }, [to]);
 
   useEffect(() => {
     if (shouldRefreshFilters) {
@@ -130,7 +130,7 @@ const UserDashboard = () => {
           },
         }
       );
-      console.log(response.data);
+      // console.log(response.data);
 
       if (!response.data) throw new Error("No data received");
 
@@ -178,7 +178,7 @@ const UserDashboard = () => {
         reffered_by: property.contacts[0]?.reffered_by || "-",
         contact_person_address: property.contacts[0]?.address || "-",
       }));
-      console.log(transformedProperties);
+      // console.log(transformedProperties);
       setProperties(transformedProperties);
       // setFilteredPropertiesSidebar(transformedProperties);
       setLoading(false);
@@ -260,12 +260,15 @@ const UserDashboard = () => {
 
       const matchesPrice =
         filters.anyPrice ||
+        property.rate_buy === "-" ||
         (typeof rateBuyNumeric === "number" &&
           rateBuyNumeric >= filters.priceRange[0] &&
           rateBuyNumeric <= filters.priceRange[1]);
 
       const matchesAreaSize =
         !filters.areaSize ||
+        property.carpet_up_area === "-" ||
+        property.carpet_up_area === 0 ||
         (property.carpet_up_area >= filters.areaSize[0] &&
           property.carpet_up_area <= filters.areaSize[1]);
 
@@ -590,7 +593,7 @@ const UserDashboard = () => {
   };
 
   const filteredProperties = useMemo(() => {
-    console.log("Filtering properties...", getFilteredProperties());
+    // console.log("Filtering properties...", getFilteredProperties());
     return getFilteredProperties(); // Your existing filter function
   }, [
     properties,
