@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import PropertyForm from "../../components/PropertyForm";
 import axios from "../../helper/axios";
 import Swal from "sweetalert2";
@@ -9,6 +9,7 @@ import { BsDownload } from "react-icons/bs";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
 import { useRef } from "react";
+import { Pagination } from "@mui/material";
 
 const UserDashboard = () => {
   const [showPropertyForm, setShowPropertyForm] = useState(false);
@@ -27,14 +28,14 @@ const UserDashboard = () => {
     city: "",
     priceRange: [1000, 1000000],
     anyPrice: true,
-    areaSize: [0, 100000],
+    areaSize: [0, 1000000],
   });
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [isEast, setIsEast] = useState(false);
   const [isWest, setIsWest] = useState(false);
   const MIN_SQFT = 0;
-  const MAX_SQFT = 100000;
+  const MAX_SQFT = 1000000;
   const [squareSize, setSquareSize] = useState(["", ""]);
   const [funUnfurn, setFunUnfurn] = useState("");
   const [FilterArea, setFilterArea] = useState([]);
@@ -48,16 +49,22 @@ const UserDashboard = () => {
   const [selectedProperties, setSelectedProperties] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
   const dropdownRef = useRef(null);
-    const [expandedRemarks, setExpandedRemarks] = useState({});
-  
-    // Toggle function for showing/hiding remarks
-    const toggleRemarks = (propertyCode) => {
-      setExpandedRemarks((prev) => ({
-        ...prev,
-        [propertyCode]: !prev[propertyCode],
-      }));
-    };
-  
+  const [expandedRemarks, setExpandedRemarks] = useState({});
+
+  const [pagination, setPagination] = useState({
+    page: 1,
+    pageSize: 10, // Reduced page size for better testing
+    totalCount: 0,
+  });
+
+  // Toggle function for showing/hiding remarks
+  const toggleRemarks = (propertyCode) => {
+    setExpandedRemarks((prev) => ({
+      ...prev,
+      [propertyCode]: !prev[propertyCode],
+    }));
+  };
+
   useEffect(() => {
     if (selectedProperties.length > 5) {
       setSelectedProperties([]);
@@ -87,9 +94,11 @@ const UserDashboard = () => {
     try {
       const response = await axios.get("/api/filter_area/");
       // console.log(response.data, "filterdata");
-      const sortedData = response.data.sort((a, b) =>
-        a.area_name.trim().localeCompare(b.area_name.trim())
-      );
+      const sortedData = response.data.sort((a, b) => {
+        const areaA = a.city_name ? a.city_name.trim() : "";
+        const areaB = b.city_name ? b.city_name.trim() : "";
+        return areaA.localeCompare(areaB);
+      });
       setFilterArea(sortedData);
     } catch (e) {
       //console.log("error", e);
@@ -99,7 +108,7 @@ const UserDashboard = () => {
   useEffect(() => {
     fetchProperties();
     FetchfilterArea();
-  }, []);
+  }, [pagination.page, from, to]);
 
   useEffect(() => {
     if (shouldRefreshFilters) {
@@ -121,12 +130,12 @@ const UserDashboard = () => {
           },
         }
       );
-      // console.log(response.data);
+      console.log(response.data);
 
       if (!response.data) throw new Error("No data received");
 
       // Transform the API response to match the expected structure
-      const transformedProperties = response.data.map((property) => ({
+      const transformedProperties = response?.data?.results.map((property) => ({
         furnished_details: property.furnished_details,
         created_by: property.user_name || "-",
         building: property.building_name || "-",
@@ -169,9 +178,9 @@ const UserDashboard = () => {
         reffered_by: property.contacts[0]?.reffered_by || "-",
         contact_person_address: property.contacts[0]?.address || "-",
       }));
-      // console.log(transformedProperties);
+      console.log(transformedProperties);
       setProperties(transformedProperties);
-      setFilteredPropertiesSidebar(transformedProperties);
+      // setFilteredPropertiesSidebar(transformedProperties);
       setLoading(false);
     } catch (err) {
       //console.error("Error fetching properties:", err);
@@ -179,6 +188,18 @@ const UserDashboard = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  }, [
+    searchTerm,
+    filters,
+    selectedPropertyType,
+    selectedLLOutright,
+    funUnfurn,
+    isEast,
+    isWest,
+  ]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -331,7 +352,7 @@ const UserDashboard = () => {
   };
   // console.log(handleFilterUpdate);
 
-  const filteredProperties = getFilteredProperties();
+  // const filteredProperties = getFilteredProperties();
   // Add this function to handle "Select All" and "Select None"
   const handleSelectAllChange = () => {
     if (selectAll) {
@@ -342,79 +363,79 @@ const UserDashboard = () => {
     setSelectAll(!selectAll);
   };
 
- const downloadAsExcel = (selectedProperties) => {
+  const downloadAsExcel = (selectedProperties) => {
     // console.log("Selected Properties:", selectedProperties);
     if (selectedProperties.length === 0) {
       Swal.fire("Error", "Please select at least one property", "error");
       return;
     }
-  
+
     // Create workbook and worksheet
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet([]);
-  
+
     // Check if any selected property has furnished_details
     const hasFurnishedDetails = selectedProperties.some(
       (property) =>
         property.furnished_details !== null &&
         property.furnished_details !== undefined
     );
-  
+
     // Define headers based on whether furnished_details exists
     const headers = hasFurnishedDetails
       ? [
-          "Building Name",
-          "Location",
-          "Sublocation",
-          "Built-up Area (sq.ft.)",
-          "Carpet Area (sq.ft.)",
-          "Terrace ",
-          "Floor/Unit/Wing",
-          "License Fees",
-          "Rate",
-          "Contact Person Name 1",
-          "Contact Person Number 1",
-          "Contact Person Name 2",
-          "Contact Person Number 2",
-          "Referred By",
-          "Executive Name",
-          "Date",
-          "Work Station",
-          "Meeting Rooms",
-          "Cubicle Type",
-          "Linear Type",
-          "Both Type",
-          "Cabins",
-          "Conference Rooms",
-          "Cafeteria Seats",
-          "Washrooms",
-          "Pantry Area",
-          "Backup UPS Room",
-          "Server Electrical Room",
-          "Reception Waiting Area",
-        ]
+        "Building Name",
+        "Location",
+        "Sublocation",
+        "Built-up Area (sq.ft.)",
+        "Carpet Area (sq.ft.)",
+        "Terrace ",
+        "Floor/Unit/Wing",
+        "License Fees",
+        "Rate",
+        "Contact Person Name 1",
+        "Contact Person Number 1",
+        "Contact Person Name 2",
+        "Contact Person Number 2",
+        "Referred By",
+        "Executive Name",
+        "Date",
+        "Work Station",
+        "Meeting Rooms",
+        "Cubicle Type",
+        "Linear Type",
+        "Both Type",
+        "Cabins",
+        "Conference Rooms",
+        "Cafeteria Seats",
+        "Washrooms",
+        "Pantry Area",
+        "Backup UPS Room",
+        "Server Electrical Room",
+        "Reception Waiting Area",
+      ]
       : [
-          "Building Name",
-          "Location",
-          "Sublocation",
-          "Built-up Area (sq.ft.)",
-          "Carpet Area (sq.ft.)",
-          "Terrace ",
-          "Floor/Unit/Wing",
-          "License Fees",
-          "Rate",
-          "Contact Person Name 1",
-          "Contact Person Number 1",
-          "Contact Person Name 2",
-          "Contact Person Number 2",
-          "Referred By",
-          "Executive Name",
-          "Date",
-        ];
-  
+        "Building Name",
+        "Location",
+        "Sublocation",
+        "Built-up Area (sq.ft.)",
+        "Carpet Area (sq.ft.)",
+        "Terrace ",
+        "Floor/Unit/Wing",
+        "License Fees",
+        "Rate",
+        "Contact Person Name 1",
+        "Contact Person Number 1",
+        "Contact Person Name 2",
+        "Contact Person Number 2",
+        "Referred By",
+        "Executive Name",
+        "Date",
+      ];
+
     // Convert selected properties into a row-wise format
     const data = [headers]; // First row = headers
-  
+
     selectedProperties.forEach((property) => {
       const floorDetails =
         property.floor
@@ -423,7 +444,7 @@ const UserDashboard = () => {
               `Floor: ${ele.floor} | Unit: ${ele.unit_number} | Wing: ${ele.wing}`
           )
           .join("\n") || "-";
-  
+
       const rowData = [
         property.building || "-",                  // "Building Name"
         property.areas_name || "-",                // "Location" (mapped from areas[0].area_name)
@@ -442,7 +463,7 @@ const UserDashboard = () => {
         property.created_by || "-",                // "Executive Name"
         property.created_date?.split("T")[0] || "-", // "Date"
       ];
-  
+
       // Add furnished_details columns at the end if present
       if (hasFurnishedDetails) {
         rowData.push(
@@ -461,19 +482,19 @@ const UserDashboard = () => {
           property.furnished_details?.reception_waiting_area ? "Yes" : "No"  // "Reception Waiting Area"
         );
       }
-  
+
       data.push(rowData);
     });
-  
+
     // Add data to worksheet
     XLSX.utils.sheet_add_aoa(ws, data, { origin: "A1" });
-  
+
     // Auto-adjust column widths
     ws["!cols"] = headers.map(() => ({ wch: 25 }));
-  
+
     // Add sheet to workbook
     XLSX.utils.book_append_sheet(wb, ws, "Property Details");
-  
+
     // Save the Excel file
     XLSX.writeFile(
       wb,
@@ -481,106 +502,119 @@ const UserDashboard = () => {
     );
   };
 
-   const showContactDetails = (property) => {
-     // Log the property to debug
+  const showContactDetails = (property) => {
+    // Log the property to debug
     //  console.log("Property in showContactDetails:", property);
- 
-     // Check if furnished_details exists (not null or undefined)
-     if (!property.furnished_details) {
+
+    // Check if furnished_details exists (not null or undefined)
+    if (!property.furnished_details) {
       //  console.log("No furnished_details found, exiting.");
-       return; // Exit if furnished_details is missing
-     }
- 
-     Swal.fire({
-       title: `<h2 style="color: #2c3e50; font-weight: 700; margin-bottom: 10px;">Furnished Details</h2>`,
-       html: `
+      return; // Exit if furnished_details is missing
+    }
+
+    Swal.fire({
+      title: `<h2 style="color: #2c3e50; font-weight: 700; margin-bottom: 10px;">Furnished Details</h2>`,
+      html: `
        <div style="text-align: left; font-size: 16px; color: #2c3e50; line-height: 1.6; width: auto; max-width: 450px; overflow: hidden;">
          <div class="furnished-details-section">
            <div class="furnished-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
              <div>
-               <p><strong>Workstations:</strong> ${
-                 property.furnished_details.workstations || "-"
-               }</p>
-               <p><strong>Cubicle Type:</strong> ${
-                 property.furnished_details.workstation_type_cubicle
-                   ? "Yes"
-                   : "No"
-               }</p>
-               <p><strong>Linear Type:</strong> ${
-                 property.furnished_details.workstation_type_linear
-                   ? "Yes"
-                   : "No"
-               }</p>
-               <p><strong>Both Types:</strong> ${
-                 property.furnished_details.workstation_type_both ? "Yes" : "No"
-               }</p>
-               <p><strong>Cabins:</strong> ${
-                 property.furnished_details.cabins || "-"
-               }</p>
+               <p><strong>Workstations:</strong> ${property.furnished_details.workstations || "-"
+        }</p>
+               <p><strong>Cubicle Type:</strong> ${property.furnished_details.workstation_type_cubicle
+          ? "Yes"
+          : "No"
+        }</p>
+               <p><strong>Linear Type:</strong> ${property.furnished_details.workstation_type_linear
+          ? "Yes"
+          : "No"
+        }</p>
+               <p><strong>Both Types:</strong> ${property.furnished_details.workstation_type_both ? "Yes" : "No"
+        }</p>
+               <p><strong>Cabins:</strong> ${property.furnished_details.cabins || "-"
+        }</p>
              </div>
              <div>
-               <p><strong>Meeting Rooms:</strong> ${
-                 property.furnished_details.meeting_rooms || "-"
-               }</p>
-               <p><strong>Conference Rooms:</strong> ${
-                 property.furnished_details.conference_rooms || "-"
-               }</p>
-               <p><strong>Cafeteria Seats:</strong> ${
-                 property.furnished_details.cafeteria_seats || "-"
-               }</p>
-               <p><strong>Washrooms:</strong> ${
-                 property.furnished_details.washrooms || "-"
-               }</p>
+               <p><strong>Meeting Rooms:</strong> ${property.furnished_details.meeting_rooms || "-"
+        }</p>
+               <p><strong>Conference Rooms:</strong> ${property.furnished_details.conference_rooms || "-"
+        }</p>
+               <p><strong>Cafeteria Seats:</strong> ${property.furnished_details.cafeteria_seats || "-"
+        }</p>
+               <p><strong>Washrooms:</strong> ${property.furnished_details.washrooms || "-"
+        }</p>
              </div>
            </div>
  
            <div className="additional-amenities" style="margin-top: 10px;">
-             ${
-               property.furnished_details.pantry_area ||
-               property.furnished_details.backup_ups_room ||
-               property.furnished_details.server_electrical_room ||
-               property.furnished_details.reception_waiting_area
-                 ? `
+             ${property.furnished_details.pantry_area ||
+          property.furnished_details.backup_ups_room ||
+          property.furnished_details.server_electrical_room ||
+          property.furnished_details.reception_waiting_area
+          ? `
                <p><strong>Additional Amenities:</strong></p>
                <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-                 ${
-                   property.furnished_details.pantry_area
-                     ? '<span style="background-color: #e9ecef; padding: 5px; border-radius: 4px;">Pantry Area</span>'
-                     : ""
-                 }
-                 ${
-                   property.furnished_details.backup_ups_room
-                     ? '<span style="background-color: #e9ecef; padding: 5px; border-radius: 4px;">Backup UPS Room</span>'
-                     : ""
-                 }
-                 ${
-                   property.furnished_details.server_electrical_room
-                     ? '<span style="background-color: #e9ecef; padding: 5px; border-radius: 4px;">Server Electrical Room</span>'
-                     : ""
-                 }
-                 ${
-                   property.furnished_details.reception_waiting_area
-                     ? '<span style="background-color: #e9ecef; padding: 5px; border-radius: 4px;">Reception & Waiting Area</span>'
-                     : ""
-                 }
+                 ${property.furnished_details.pantry_area
+            ? '<span style="background-color: #e9ecef; padding: 5px; border-radius: 4px;">Pantry Area</span>'
+            : ""
+          }
+                 ${property.furnished_details.backup_ups_room
+            ? '<span style="background-color: #e9ecef; padding: 5px; border-radius: 4px;">Backup UPS Room</span>'
+            : ""
+          }
+                 ${property.furnished_details.server_electrical_room
+            ? '<span style="background-color: #e9ecef; padding: 5px; border-radius: 4px;">Server Electrical Room</span>'
+            : ""
+          }
+                 ${property.furnished_details.reception_waiting_area
+            ? '<span style="background-color: #e9ecef; padding: 5px; border-radius: 4px;">Reception & Waiting Area</span>'
+            : ""
+          }
                </div>
                `
-                 : ""
-             }
+          : ""
+        }
            </div>
          </div>
        </div>`,
-       confirmButtonText: "Close",
-       width: "500px",
-       background: "#ffffff",
-       showClass: {
-         popup: "animate__animated animate__fadeInDown",
-       },
-       hideClass: {
-         popup: "animate__animated animate__fadeOutUp",
-       },
-     });
-   };
+      confirmButtonText: "Close",
+      width: "500px",
+      background: "#ffffff",
+      showClass: {
+        popup: "animate__animated animate__fadeInDown",
+      },
+      hideClass: {
+        popup: "animate__animated animate__fadeOutUp",
+      },
+    });
+  };
+
+  const filteredProperties = useMemo(() => {
+    console.log("Filtering properties...", getFilteredProperties());
+    return getFilteredProperties(); // Your existing filter function
+  }, [
+    properties,
+    searchTerm,
+    filters,
+    selectedPropertyType,
+    selectedLLOutright,
+    funUnfurn,
+    isEast,
+    isWest,
+  ]);
+
+  const paginatedProperties = useMemo(() => {
+    const startIndex = (pagination.page - 1) * pagination.pageSize;
+    return filteredProperties.slice(
+      startIndex,
+      startIndex + pagination.pageSize
+    );
+  }, [filteredProperties, pagination.page, pagination.pageSize]);
+
+  const totalPages = useMemo(() => {
+    return Math.ceil(filteredProperties.length / pagination.pageSize);
+
+  }, [filteredProperties, pagination.pageSize]);
 
   const handleDelete = async (id) => {
     Swal.fire({
@@ -760,7 +794,7 @@ const UserDashboard = () => {
                               ),
                             ].map((type) => (
                               <option key={type} value={type}>
-                               {type}
+                                {type}
                               </option>
                             ))}
                           </select>
@@ -871,11 +905,10 @@ const UserDashboard = () => {
                     }}
                     disabled={selectedProperties.length === 0}
                     className={`px-3 py-2 font-medium rounded-md transition-all duration-200 
-          ${
-            selectedProperties.length === 0
-              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-              : "bg-red-500 text-white hover:bg-red-600"
-          }`}
+          ${selectedProperties.length === 0
+                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        : "bg-red-500 text-white hover:bg-red-600"
+                      }`}
                   >
                     Clear Selection
                   </button>
@@ -883,14 +916,13 @@ const UserDashboard = () => {
 
                 {/* Right Section - Export Button */}
                 <button
-              onClick={() => downloadAsExcel(selectedProperties)} // Updated to remove unnecessary event param
-              disabled={selectedProperties.length === 0}
+                  onClick={() => downloadAsExcel(selectedProperties)} // Updated to remove unnecessary event param
+                  disabled={selectedProperties.length === 0}
                   className={`px-5 flex items-center gap-2 py-2 font-medium rounded-md shadow-md transition-all duration-200 
-        ${
-          selectedProperties.length === 0
-            ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-            : "bg-blue-600 text-white hover:bg-blue-700"
-        }`}
+        ${selectedProperties.length === 0
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-blue-600 text-white hover:bg-blue-700"
+                    }`}
                 >
                   <BsDownload className="text-lg" />
                   <span>Export to Excel</span>
@@ -967,121 +999,121 @@ const UserDashboard = () => {
                         </td>
                       </tr>
                     ) : (
-                      filteredProperties
-                        .map((property, index) => (
-                          <tr
-                            key={index}
-                            className="cursor-pointer hover:bg-gray-50"
-                            // onClick={() => showContactDetails(property)}
-                            onClick={(e) => {
-                              showContactDetails(property); // First function
-                              if (!e.target.closest('input[type="checkbox"]')) {
-                                showContactDetails(property); // Second function
-                              }
-                            }}
+                      paginatedProperties.map((property, index) => (
+                        // console.log("Property:", property),
+                        <tr
+                          key={index}
+                          className="cursor-pointer hover:bg-gray-50"
+                          // onClick={() => showContactDetails(property)}
+                          onClick={(e) => {
+                            showContactDetails(property); // First function
+                            if (!e.target.closest('input[type="checkbox"]')) {
+                              showContactDetails(property); // Second function
+                            }
+                          }}
+                        >
+                          <td
+                            className="px-4 py-2 text-center break-all border"
+                            onClick={(e) => e.stopPropagation()}
                           >
-                            <td
-                              className="px-4 py-2 text-center break-all border"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={selectedProperties.some(
-                                  (p) =>
-                                    p.property_code === property.property_code
-                                )}
-                                onChange={() => handleCheckboxChange(property)}
-                                className="w-4 h-4 accent-blue-800"
-                              />
-                            </td>
-                            <td className="px-4 py-2 border text-wrap">
-                              {property.building}
-                            </td>
-                            {/* <td className="px-4 py-2 border text-wrap">
+                            <input
+                              type="checkbox"
+                              checked={selectedProperties.some(
+                                (p) =>
+                                  p.property_code === property.property_code
+                              )}
+                              onChange={() => handleCheckboxChange(property)}
+                              className="w-4 h-4 accent-blue-800"
+                            />
+                          </td>
+                          <td className="px-4 py-2 border text-wrap">
+                            {property.building}
+                          </td>
+                          {/* <td className="px-4 py-2 border text-wrap">
                               {property.city_name}
                             </td> */}
-                            {/* <td className="px-4 py-2 border text-wrap">
+                          {/* <td className="px-4 py-2 border text-wrap">
                               {property.east_west}
                             </td>
                             <td className="px-4 py-2 border text-wrap">
                               {property.address}
                             </td> */}
-                            <td className="px-4 py-2 border text-wrap">
-                              {property.areas_name}
-                            </td>
-                            <td className="px-4 py-2 border text-wrap">
-                              {property.area_name}
-                            </td>
-                            {/* <td className="px-4 py-2 border text-wrap">
+                          <td className="px-4 py-2 border text-wrap">
+                            {property.areas_name}
+                          </td>
+                          <td className="px-4 py-2 border text-wrap">
+                            {property.area_name}
+                          </td>
+                          {/* <td className="px-4 py-2 border text-wrap">
                               {property.description}
                             </td> */}
-                            <td className="px-4 py-2 border text-wrap">
-                              {property.built_up_area}{" "}
-                            </td>
-                            <td className="px-4 py-2 border text-wrap">
-                              {property.carpet_up_area}{" "}
-                            </td>
-                            <td className="px-4 py-2 border text-wrap">
-                              {property.terrace_area}
-                            </td>
-                            <td className="px-4 py-2 border text-wrap">
-                              <table
-                                style={{
-                                  width: "100%",
-                                  borderCollapse: "collapse",
-                                }}
-                              >
-                                <tbody>
-                                  {property.floor &&
+                          <td className="px-4 py-2 border text-wrap">
+                            {property.built_up_area}{" "}
+                          </td>
+                          <td className="px-4 py-2 border text-wrap">
+                            {property.carpet_up_area}{" "}
+                          </td>
+                          <td className="px-4 py-2 border text-wrap">
+                            {property.terrace_area}
+                          </td>
+                          <td className="px-4 py-2 border text-wrap">
+                            <table
+                              style={{
+                                width: "100%",
+                                borderCollapse: "collapse",
+                              }}
+                            >
+                              <tbody>
+                                {property.floor &&
                                   property.floor.length > 0 ? (
-                                    property.floor.map((ele, index) => (
-                                      <tr key={index}>
-                                        <td
-                                          style={{
-                                            padding: "3px",
-                                            border: "1px solid #ccc",
-                                            textAlign: "center",
-                                          }}
-                                        >
-                                          {ele.floor}
-                                        </td>
-                                        {/* <td style={{ padding: '3px', border: '1px solid #ccc', textAlign: 'center' }}>{ele.unit_number}</td> */}
-                                        <td
-                                          style={{
-                                            padding: "3px",
-                                            border: "1px solid #ccc",
-                                            textAlign: "center",
-                                          }}
-                                        >
-                                          {ele.wing}
-                                        </td>
-                                      </tr>
-                                    ))
-                                  ) : (
-                                    <tr>
+                                  property.floor.map((ele, index) => (
+                                    <tr key={index}>
                                       <td
-                                        colSpan="3"
                                         style={{
                                           padding: "3px",
                                           border: "1px solid #ccc",
                                           textAlign: "center",
                                         }}
                                       >
-                                        -
+                                        {ele.floor}
+                                      </td>
+                                      {/* <td style={{ padding: '3px', border: '1px solid #ccc', textAlign: 'center' }}>{ele.unit_number}</td> */}
+                                      <td
+                                        style={{
+                                          padding: "3px",
+                                          border: "1px solid #ccc",
+                                          textAlign: "center",
+                                        }}
+                                      >
+                                        {ele.wing}
                                       </td>
                                     </tr>
-                                  )}
-                                </tbody>
-                              </table>
-                            </td>
-                            <td className="px-4 py-2 border text-wrap">
-                              {property.rental_psf}
-                            </td>
+                                  ))
+                                ) : (
+                                  <tr>
+                                    <td
+                                      colSpan="3"
+                                      style={{
+                                        padding: "3px",
+                                        border: "1px solid #ccc",
+                                        textAlign: "center",
+                                      }}
+                                    >
+                                      -
+                                    </td>
+                                  </tr>
+                                )}
+                              </tbody>
+                            </table>
+                          </td>
+                          <td className="px-4 py-2 border text-wrap">
+                            {property.rental_psf}
+                          </td>
 
-                            <td className="px-4 py-2 border text-wrap">
-                              {property.outright_rate_psf}
-                            </td>
-                            {/* <td className="px-4 py-2 border text-wrap">
+                          <td className="px-4 py-2 border text-wrap">
+                            {property.outright_rate_psf}
+                          </td>
+                          {/* <td className="px-4 py-2 border text-wrap">
                               {property.poss_status}
                             </td>
                             <td className="px-4 py-2 border text-wrap">
@@ -1090,29 +1122,29 @@ const UserDashboard = () => {
                             <td className="px-4 py-2 border text-wrap">
                               {property.builderaddress}
                             </td> */}
-                            <td className="px-4 py-2 border text-wrap">
-                              {property.contact_person1}
-                            </td>
-                            <td className="px-4 py-2 border text-wrap">
-                              {property.conatact_person_number_1}
-                            </td>
-                            <td className="px-4 py-2 border text-wrap">
-                              {property.contact_person2}
-                            </td>
-                            <td className="px-4 py-2 border text-wrap">
-                              {property.conatact_person_number_2}
-                            </td>
-                            {/* <td className="px-4 py-2 border text-wrap">
+                          <td className="px-4 py-2 border text-wrap">
+                            {property.contact_person1}
+                          </td>
+                          <td className="px-4 py-2 border text-wrap">
+                            {property.conatact_person_number_1}
+                          </td>
+                          <td className="px-4 py-2 border text-wrap">
+                            {property.contact_person2}
+                          </td>
+                          <td className="px-4 py-2 border text-wrap">
+                            {property.conatact_person_number_2}
+                          </td>
+                          {/* <td className="px-4 py-2 border text-wrap">
                               {property.email}
                             </td> */}
 
-                            <td className="px-4 py-2 border text-wrap">
-                              {property.reffered_by}
-                            </td>
-                            <td className="px-4 py-2 border text-wrap">
-                              {property.created_by}
-                            </td>
-                            {/* <td className="px-4 py-2 break-words whitespace-normal border">
+                          <td className="px-4 py-2 border text-wrap">
+                            {property.reffered_by}
+                          </td>
+                          <td className="px-4 py-2 border text-wrap">
+                            {property.created_by}
+                          </td>
+                          {/* <td className="px-4 py-2 break-words whitespace-normal border">
                           {property.remarks && property.remarks.length > 50 ? (
                             <div>
                               {expandedRemarks[property.property_code] ? (
@@ -1147,30 +1179,30 @@ const UserDashboard = () => {
                             property.remarks || "-"
                           )}
                         </td> */}
-                            <td className="px-4 py-2 border text-wrap">
-                              {property.created_date.split("T")[0]}
-                            </td>
-                            <td className="px-4 py-2 border text-wrap">
-                              <div className="flex justify-center gap-4">
-                                <FaEdit
-                                  className="text-blue-600 cursor-pointer"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setEditProperty(true);
-                                    setProperty(property);
-                                  }}
-                                />
-                                <MdDelete
-                                  className="text-red-600 cursor-pointer"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDelete(property?.property_code);
-                                  }}
-                                />
-                              </div>
-                            </td>
-                          </tr>
-                        ))
+                          <td className="px-4 py-2 border text-wrap">
+                            {property.created_date.split("T")[0]}
+                          </td>
+                          <td className="px-4 py-2 border text-wrap">
+                            <div className="flex justify-center gap-4">
+                              <FaEdit
+                                className="text-blue-600 cursor-pointer"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditProperty(true);
+                                  setProperty(property);
+                                }}
+                              />
+                              <MdDelete
+                                className="text-red-600 cursor-pointer"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDelete(property?.property_code);
+                                }}
+                              />
+                            </div>
+                          </td>
+                        </tr>
+                      ))
                         .reverse()
                     )}
                   </tbody>
@@ -1178,6 +1210,30 @@ const UserDashboard = () => {
               )}
             </div>
           )}
+        </div>
+        <div className="flex justify-center mb-6">
+          <Pagination
+            count={totalPages}
+            page={pagination.page}
+            onChange={(e, value) =>
+              setPagination((prev) => ({ ...prev, page: value }))
+            }
+            color="primary"
+            sx={{
+              "& .MuiPaginationItem-root": {
+                color: "black",
+              },
+              "& .Mui-selected": {
+                backgroundColor: "#BD695D",
+                color: "white",
+                "&:hover": {
+                  backgroundColor: "#A13727",
+                },
+              },
+            }}
+            showFirstButton
+            showLastButton
+          />
         </div>
       </div>
     </div>
