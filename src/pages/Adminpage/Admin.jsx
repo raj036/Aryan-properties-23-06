@@ -70,7 +70,7 @@ const Dashboard = () => {
           },
         }
       );
-      console.log(response.data.total);
+      // console.log(response.data.total);
       setPropertyCount(response.data.total);
       //  setTotalCount(response.data.total);
 
