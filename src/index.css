@@ -1,0 +1,52 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+th {
+  text-align: center;
+  vertical-align: middle;
+  white-space: nowrap;
+  border: 1px solid #ddd;
+  font-size: 16px;
+  font-family: arial;
+  padding-right: 23px;
+  padding-left: 23px;
+
+  width: 180px;
+}
+
+td {
+  white-space: nowrap;
+
+  font-size: 16px;
+  font-family: arial;
+  padding: 18px;
+}
+
+.table-container {
+  overflow-x: scroll;
+}
+
+/* Base table styles */
+table {
+  width: 100%; /* Table stretches to the container's width */
+  table-layout: fixed; /* Prevent columns from stretching */
+  border-collapse: collapse; /* Clean border handling */
+}
+
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+.swal2-icon {
+  font-size: 12px;
+ }
