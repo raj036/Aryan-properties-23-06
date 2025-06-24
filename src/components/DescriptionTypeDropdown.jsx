@@ -90,7 +90,7 @@ const DescriptionTypeDropdown = ({ onChange, setFurnishedId, desc, value, furnis
       onChange(type.des_id);
     }
 
-    if (type.description === "Furnished") {
+    if (type.description.toLowerCase() === "furnished") {
       setIsModalOpen(true);
     }
   };

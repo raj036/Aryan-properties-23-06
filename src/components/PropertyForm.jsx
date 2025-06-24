@@ -41,7 +41,7 @@ const PropertyForm = ({
     reopen_date: "",
     areas: [
       {
-        filter_area_id: null,
+        filter_area_id: 0,
         built_up_area: null,
         carpet_up_area: null,
         efficiency: "",
@@ -76,19 +76,19 @@ const PropertyForm = ({
     if (editProperty && property && Object.keys(property).length > 0) {
       setFurnished_details(property.furnished_details);
       const matchingArea = FilterAreaData.find(
-        (area) => area.area_name === property.areas_name
+        (area) => area.city_name === property.areas_name
       );
-      const areaId = matchingArea ? matchingArea.filter_area_id : null;
-      setfilterAreaId(areaId || 0);
+      const areaId = matchingArea ? matchingArea.filter_area_id : 0;
+      setfilterAreaId(areaId);
       setDesc(property.description);
       setPropertyType(property.property_type);
       setFormData({
         // furnished_details: property.furnished_details,
         ...(property.furnished_details?.id || furnishedId
           ? {
-              furnished_property_id:
-                property.furnished_details?.id ?? furnishedId,
-            }
+            furnished_property_id:
+              property.furnished_details?.id ?? furnishedId,
+          }
           : {}),
         building_name: property.building || "",
         full_address: property.address || "",
@@ -103,8 +103,8 @@ const PropertyForm = ({
         // property_type: property.property_type,
         areas: [
           {
-            filter_area_id: areaId || "",
-            // location: property.areas_name || "",
+            filter_area_id: areaId,
+            location: property.city_name || "",
             built_up_area: property.built_up_area || null,
             carpet_up_area: property.carpet_up_area || null,
             efficiency: property.efficiency || "",
@@ -117,10 +117,10 @@ const PropertyForm = ({
             unit_floor_wing:
               Array.isArray(property.floor) && property.floor.length > 0
                 ? property.floor.map((item) => ({
-                    wing: item.wing || "",
-                    floor: item.floor || "",
-                    unit_number: item.unit_number || "",
-                  }))
+                  wing: item.wing || "",
+                  floor: item.floor || "",
+                  unit_number: item.unit_number || "",
+                }))
                 : [{ wing: "", floor: "", unit_number: "" }],
             contacts: [
               {
@@ -145,22 +145,42 @@ const PropertyForm = ({
     }
   }, [property, editProperty, FilterAreaData]);
 
-  const FilterArea = async () => {
+  // const FilterArea = async () => {
+  //   try {
+  //     const response = await axios.get("/api/filter_area/");
+  //     // Sort the data in ascending order by area_name before setting it to state
+  //     const sortedData = response.data.sort((a, b) =>
+  //       a.area_name.trim().localeCompare(b.area_name.trim())
+  //     );
+  //     setFilterAreaData(sortedData);
+  //     // console.log(response, "location");
+  //   } catch (error) {
+  //     //console.error("Error fetching filter areas:", error);
+  //     Swal.fire({
+  //       icon: "error",
+  //       title: "Error",
+  //       text: "Failed to fetch locations",
+  //     });
+  //   }
+  // };
+
+  const FetchfilterArea = async () => {
     try {
       const response = await axios.get("/api/filter_area/");
-      // Sort the data in ascending order by area_name before setting it to state
-      const sortedData = response.data.sort((a, b) =>
-        a.area_name.trim().localeCompare(b.area_name.trim())
-      );
-      setFilterAreaData(sortedData);
-      // console.log(response, "location");
-    } catch (error) {
-      //console.error("Error fetching filter areas:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Failed to fetch locations",
+      console.log(response.data, "filterdata");
+      // const sortedData = response.data.sort((a, b) =>
+      //   a.area_name.trim().localeCompare(b.area_name.trim())
+      // );
+      const sortedData = response.data.sort((a, b) => {
+        const areaA = a.city_name ? a.city_name.trim() : "";
+        const areaB = b.city_name ? b.city_name.trim() : "";
+        return areaA.localeCompare(areaB);
       });
+
+      // setFilterArea(sortedData);
+      setFilterAreaData(sortedData);
+    } catch (e) {
+      console.log("error", e);
     }
   };
 
@@ -172,11 +192,11 @@ const PropertyForm = ({
   // }, [property, setEditProperty]);
 
   useEffect(() => {
-    FilterArea();
+    FetchfilterArea();
     //console.log(property.property_code);
   }, []);
-  
-   // Fetch Property Types from API
+
+  // Fetch Property Types from API
   useEffect(() => {
     const fetchPropertyTypes = async () => {
       try {
@@ -212,7 +232,7 @@ const PropertyForm = ({
       //   onChange(matchedType.type_id);
       // console.log("📤 Sent type_id to parent (useEffect):", matchedType.type_id);
       // }
-    } 
+    }
   }, [ProCategories]); // Fetch Property Types from API
   useEffect(() => {
     const fetchPropertyTypes = async () => {
@@ -249,12 +269,14 @@ const PropertyForm = ({
       //   onChange(matchedType.type_id);
       // console.log("📤 Sent type_id to parent (useEffect):", matchedType.type_id);
       // }
-    } 
+    }
   }, [ProCategories]);
 
   const handlefilterAreaId = (location) => {
-    const locationId = parseInt(location);
-    setfilterAreaId(locationId);
+    const id = locationId === "0" ? 0 : parseInt(locationId);
+    setfilterAreaId(id);
+    // const locationId = parseInt(location);
+    // setfilterAreaId(locationId);
     // console.log(locationId);
     // console.log(location.area_name)
 
@@ -263,7 +285,11 @@ const PropertyForm = ({
       areas: [
         {
           ...prev.areas[0],
-          filter_area_id: locationId,
+          filter_area_id: id,
+          // If you need to store the area_name as well:
+          location:
+            FilterAreaData.find((loc) => loc.filter_area_id === id)
+              ?.area_name || "",
         },
       ],
     }));
@@ -352,7 +378,7 @@ const PropertyForm = ({
       built_up_area: formData.areas[0].built_up_area,
       carpet_up_area: formData.areas[0].carpet_up_area,
       // efficiency: formData.areas[0].efficiency,
-      filter_area_id: formData.areas[0].filter_area_id,
+      // filter_area_id: formData.areas[0].filter_area_id,
     };
 
     for (const [field, value] of Object.entries(requiredNumberFields)) {
@@ -365,16 +391,32 @@ const PropertyForm = ({
         return false;
       }
     }
-
+    if (isNaN(Number(formData.areas[0].filter_area_id))) {
+      Swal.fire({
+        icon: "error",
+        title: "Validation Error",
+        text: "Please select a valid location",
+      });
+      return false;
+    }
     return true;
   };
 
+  const [loading, setloading] = useState(false);
+
   const handleSubmit = async () => {
+
+    setloading(true);
+    if (!validateForm()) {
+      setloading(false);
+      return;
+    }
+
     if (!validateForm()) return;
     if (editProperty) {
       // console.log(formData.furnished_details, "propertycode");
-      if(!isPropertyChanged){
-        setFormData({...formData , property_type: propertyId})
+      if (!isPropertyChanged) {
+        setFormData({ ...formData, property_type: propertyId })
       }
       try {
         const response = await axios.put(
@@ -399,7 +441,7 @@ const PropertyForm = ({
             showConfirmButton: false,
           });
           fetchProperties();
-          // window.location.reload();
+          window.location.reload();
           setFormData(initialFormState);
           setShowPropertyForm(false);
 
@@ -414,6 +456,9 @@ const PropertyForm = ({
             error.response?.data?.detail ||
             "An error occurred. Please try again.",
         });
+      }
+      finally {
+        setloading(false);
       }
     } else {
       // console.log("adding start");
@@ -458,6 +503,9 @@ const PropertyForm = ({
             "An error occurred. Please try again.",
         });
       }
+      finally {
+        setloading(false);
+      }
       // console.log("done");
     }
   };
@@ -488,13 +536,11 @@ const PropertyForm = ({
         {tabs.map((tab, index) => (
           <button
             key={index}
-            className={`flex-1 py-3 font-semibold rounded-md ${
-              index !== tabs.length - 1 ? "border-r-2" : ""
-            } ${
-              activeTab === index
+            className={`flex-1 py-3 font-semibold rounded-md ${index !== tabs.length - 1 ? "border-r-2" : ""
+              } ${activeTab === index
                 ? "text-white bg-blue-900"
                 : "hover:text-blue-700"
-            }`}
+              }`}
             onClick={() => setActiveTab(index)}
           >
             {tab.replace(/([A-Z])/g, " $1").trim()}
@@ -574,16 +620,16 @@ const PropertyForm = ({
             <select
               name="location"
               className="h-10 w-full p-1 border border-[#D3DAEE] rounded-lg shadow-sm"
-              onChange={(e) => handlefilterAreaId(e.target.value.trim())}
-              value={formData.areas[0].filter_area_id || ""}
+              onChange={(e) => handlefilterAreaId(e.target.value)}
+              value={formData.areas[0].filter_area_id || 0} // Use the actual stored ID
             >
-              <option value="">Select Location</option>
+              <option value="0">Select Location</option>
               {FilterAreaData.map((location) => (
                 <option
                   key={location.filter_area_id}
                   value={location.filter_area_id}
                 >
-                  {location.area_name.trim()}
+                  {location.city_name.trim()}
                 </option>
               ))}
             </select>
@@ -619,7 +665,7 @@ const PropertyForm = ({
               }}
               value={formData.property_type} // Ensure dropdown receives `type_id`
               propertyType={propertyType} // Only for UI display
-              setIsPropertyChanged = {setIsPropertyChanged}
+              setIsPropertyChanged={setIsPropertyChanged}
             />
 
             <ReopenDateDropdown
@@ -995,8 +1041,9 @@ const PropertyForm = ({
           <button
             className="px-6 py-3 text-white bg-green-700 rounded-lg hover:bg-green-800"
             onClick={handleSubmit}
+            disabled={loading} // Disable button when loading
           >
-            Submit
+            {loading ? "Submitting..." : "Submit"}
           </button>
         )}
       </div>
