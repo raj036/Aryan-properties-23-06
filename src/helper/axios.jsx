@@ -4,9 +4,9 @@ import axios from "axios";
 const ApiAxios = axios.create({
   // baseURL: "https://86db-2405-201-37-21d9-c12a-b69a-b605-8271.ngrok-free.app/",
   // baseURL: "https://api.maitriai.com/aryan_properties",
-  // baseURL: "http://192.168.29.253:8004/",
+  baseURL: "http://192.168.29.253:8000/",
   //  baseURL: "http://localhost:8000/",
-  baseURL: "http://crm.aryansproperties.com:5173/aryans/",
+  // baseURL: "http://crm.aryansproperties.com:5173/aryans/",
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",

@@ -150,7 +150,7 @@ const Property = () => {
       //   contact_person_address: property.contacts[0]?.address || "-",
       // }));
 
-         const transformedProperties = response?.data?.results.map((property) => ({
+      const transformedProperties = response?.data?.results.map((property) => ({
         furnished_details: property.furnished_details,
         created_by: property.user_name || "-",
         building: property.building_name || "-",
@@ -158,6 +158,7 @@ const Property = () => {
         city_name: property.city || "-",
         location: property.areas?.[0]?.area_name || "-",
         property_code: property.property_code || "-",
+        citycode: property.citycode || "-",
         area_name: property.sublocation || "-",
         property_type: property.property_type || "-",
         lease_type: property.LL_outright || "-",
@@ -172,11 +173,16 @@ const Property = () => {
         east_west: property.east_west || "-",
         reopen: property.reopen_data || "-",
         created_date: property.created_date || "-",
-        floor: property.areas?.[0]?.floor_wing_unit_number?.[0] || {
-          floor: "-",
-          wing: "-",
-          unit_number: "-",
-        },
+        floor: property.areas[0]?.floor_wing_unit_number || "-",
+        // floor: property.areas[0]?.floor_wing_unit_number || "-",;
+        // unit: property.areas?;
+        // floor: property.floor.;
+        // floor: property.areas?.[0]?.floor_wing_unit_number?.[0] || {
+        //   floor: "-",
+        //   wing: "-",
+        //   unit_number: "-",
+        // },
+
         car_parking: property.areas?.[0]?.car_parking || "-",
         terrace_area: property.areas?.[0]?.terrace_area || "-",
         remarks: property.areas?.[0]?.remarks || "-",
@@ -197,8 +203,8 @@ const Property = () => {
         reffered_by: property.contacts?.[0]?.reffered_by || "-",
         contact_person_address: property.contacts?.[0]?.address || "-",
       }));
-      
-      // console.log(transformedProperties);
+
+      console.log(transformedProperties);
       setProperties(transformedProperties);
       setLoading(false);
     } catch (err) {
@@ -1358,13 +1364,13 @@ const Property = () => {
   //     });
   //   };
 
-  
+
   // Update your useEffect for fetching data
   useEffect(() => {
     fetchProperties();
     // Remove pagination.page from dependencies to prevent unnecessary re-fetches
   }, [from, to]);
-  
+
   const paginatedProperties = useMemo(() => {
     const startIndex = (pagination.page - 1) * pagination.pageSize;
     return filteredProperties.slice(
@@ -1376,7 +1382,7 @@ const Property = () => {
   const totalPages = useMemo(() => {
     return Math.ceil(filteredProperties.length / pagination.pageSize);
   }, [filteredProperties, pagination.pageSize]);
-  
+
   useEffect(() => {
     setPagination((prev) => ({ ...prev, page: 1 }));
   }, [searchTerm]);
@@ -1894,7 +1900,7 @@ const Property = () => {
                       </td> */}
                     </tr>
                   ))
-                    .reverse()
+                    // .reverse()
                 )}
               </tbody>
             </table>

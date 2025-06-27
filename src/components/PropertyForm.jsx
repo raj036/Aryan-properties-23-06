@@ -39,6 +39,7 @@ const PropertyForm = ({
     poss_status: "",
     east_west: "",
     reopen_date: "",
+    citycode: "",
     areas: [
       {
         filter_area_id: 0,
@@ -94,6 +95,7 @@ const PropertyForm = ({
         full_address: property.address || "",
         sublocation: property.area_name || "",
         city: property.city_name || "",
+        citycode: property.citycode || "",
         LL_outright: property.outright || "",
         property_type: property.property_type || "",
         poss_status: property.poss_status || "",
@@ -104,7 +106,7 @@ const PropertyForm = ({
         areas: [
           {
             filter_area_id: areaId,
-            location: property.city_name || "",
+            location: property.areas_name || "",
             built_up_area: property.built_up_area || null,
             carpet_up_area: property.carpet_up_area || null,
             efficiency: property.efficiency || "",
@@ -272,24 +274,45 @@ const PropertyForm = ({
     }
   }, [ProCategories]);
 
-  const handlefilterAreaId = (location) => {
+  // const handlefilterAreaId = (location) => {
+  //   const id = locationId === "0" ? 0 : parseInt(locationId);
+  //   setfilterAreaId(id);
+  //   // const locationId = parseInt(location);
+  //   // setfilterAreaId(locationId);
+  //   // console.log(locationId);
+  //   // console.log(location.area_name)
+
+  //   setFormData((prev) => ({
+  //     ...prev,
+  //     areas: [
+  //       {
+  //         ...prev.areas[0],
+  //         filter_area_id: id,
+  //         // If you need to store the area_name as well:
+  //         location:
+  //           FilterAreaData.find((loc) => loc.filter_area_id === id)
+  //             ?.area_name || "",
+  //       },
+  //     ],
+  //   }));
+  // };
+
+  const handlefilterAreaId = (locationId) => {
+    console.log('id', locationId);
     const id = locationId === "0" ? 0 : parseInt(locationId);
     setfilterAreaId(id);
-    // const locationId = parseInt(location);
-    // setfilterAreaId(locationId);
-    // console.log(locationId);
-    // console.log(location.area_name)
+
+    // Find the selected location data
+    const selectedLocation = FilterAreaData.find((loc) => loc.filter_area_id === id);
 
     setFormData((prev) => ({
       ...prev,
+      citycode: selectedLocation?.citycode || "", // Set citycode from the selected location
       areas: [
         {
           ...prev.areas[0],
           filter_area_id: id,
-          // If you need to store the area_name as well:
-          location:
-            FilterAreaData.find((loc) => loc.filter_area_id === id)
-              ?.area_name || "",
+          location: selectedLocation?.area_name || "", // Set area_name from the selected location
         },
       ],
     }));
@@ -415,9 +438,9 @@ const PropertyForm = ({
     if (!validateForm()) return;
     if (editProperty) {
       // console.log(formData.furnished_details, "propertycode");
-      if (!isPropertyChanged) {
-        setFormData({ ...formData, property_type: propertyId })
-      }
+      // if (!isPropertyChanged) {
+      //   setFormData({ ...formData, property_type: propertyId })
+      // }
       try {
         const response = await axios.put(
           `/api/update_property/${property.property_code}`,
@@ -792,6 +815,96 @@ const PropertyForm = ({
               <span>Floor</span>
               <span>Wing</span>
             </div>
+
+            {/* {formData.areas[0].unit_floor_wing.map((unit, index) => (
+              <div key={index} className="flex gap-3">
+                <div className="flex space-x-4 w-[65%] mb-2 items-center">
+                  <input
+                    type="text"
+                    placeholder="Unit No"
+                    className="w-1/3 p-2 border rounded"
+                    name="unit_number"
+                    value={unit.unit_number}
+                    onChange={(e) => {
+                      const newUnits = [...formData.areas[0].unit_floor_wing];
+                      newUnits[index].unit_number = e.target.value;
+                      setFormData((prev) => ({
+                        ...prev,
+                        areas: [
+                          {
+                            ...prev.areas[0],
+                            unit_floor_wing: newUnits,
+                          },
+                        ],
+                      }));
+                    }}
+                  />
+
+                  <input
+                    type="text"
+                    placeholder="Floor"
+                    className="w-1/3 p-2 border rounded"
+                    name="floor"
+                    value={unit.floor}
+                    onChange={(e) => {
+                      const newUnits = [...formData.areas[0].unit_floor_wing];
+                      newUnits[index].floor = e.target.value;
+                      setFormData((prev) => ({
+                        ...prev,
+                        areas: [
+                          {
+                            ...prev.areas[0],
+                            unit_floor_wing: newUnits,
+                          },
+                        ],
+                      }));
+                    }}
+                  />
+
+                  <input
+                    type="text"
+                    placeholder="Wing"
+                    className="w-1/3 p-2 border rounded"
+                    name="wing"
+                    value={unit.wing}
+                    onChange={(e) => {
+                      const newUnits = [...formData.areas[0].unit_floor_wing];
+                      newUnits[index].wing = e.target.value;
+                      setFormData((prev) => ({
+                        ...prev,
+                        areas: [
+                          {
+                            ...prev.areas[0],
+                            unit_floor_wing: newUnits,
+                          },
+                        ],
+                      }));
+                    }}
+                  />
+                </div>
+                {index > 0 && !editProperty && (
+                  <button
+                    onClick={() => {
+                      const newUnits = formData.areas[0].unit_floor_wing.filter(
+                        (_, i) => i !== index
+                      );
+                      setFormData((prev) => ({
+                        ...prev,
+                        areas: [
+                          {
+                            ...prev.areas[0],
+                            unit_floor_wing: newUnits,
+                          },
+                        ],
+                      }));
+                    }}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <FaMinus />
+                  </button>
+                )}
+              </div>
+            ))} */}
 
             {formData.areas[0].unit_floor_wing.map((unit, index) => (
               <div key={index} className="flex gap-3">
