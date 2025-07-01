@@ -173,7 +173,7 @@ const Property = () => {
         east_west: property.east_west || "-",
         reopen: property.reopen_data || "-",
         created_date: property.created_date || "-",
-        floor: property.areas[0]?.floor_wing_unit_number || "-",
+        floor: property.areas[0]?.floor_wing_unit_number || [],
         // floor: property.areas[0]?.floor_wing_unit_number || "-",;
         // unit: property.areas?;
         // floor: property.floor.;

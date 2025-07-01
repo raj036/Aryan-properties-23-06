@@ -135,23 +135,66 @@ const UserDashboard = () => {
       if (!response.data) throw new Error("No data received");
 
       // Transform the API response to match the expected structure
+      // const transformedProperties = response?.data?.results.map((property) => ({
+      //   furnished_details: property.furnished_details,
+      //   created_by: property.user_name || "-",
+      //   building: property.building_name || "-",
+      //   property_code: property.property_code || "-",
+      //   address: property.full_address || "-",
+      //   city_name: property.city || "-",
+      //   location: property.areas[0].area_name || "-",
+      //   area_name: property.sublocation || "-",
+      //   property_type: property.property_type || "-",
+      //   lease_type: property.LL_outright || "-",
+      //   c_status: property.poss_status || "-",
+      //   outright_rate_psf: property.areas[0]?.outright_rate_psf || "-",
+      //   terrace_area: property.areas[0]?.terrace_area || "-",
+      //   remarks: property.areas[0]?.remarks || "-",
+      //   rental_psf: property.areas[0]?.rental_psf || "-",
+      //   company: property.contacts[0]?.company_builder_name || "-",
+      //   description: property.description || "-",
+      //   outright: property.LL_outright || "-",
+      //   poss_status: property.poss_status || "-",
+      //   pin_code: "-",
+      //   east_west: property.east_west || "-",
+      //   reopen: property.reopen_data || "-",
+      //   created_date: property.created_date || "-",
+      //   floor: property.areas[0]?.floor_wing_unit_number || "-",
+      //   car_parking: property.areas[0]?.car_parking || "-",
+      //   efficiency: property.areas[0]?.efficiency || "-",
+      //   areas_name: property.areas[0]?.area_name || "-",
+      //   built_up_area: property.areas[0]?.built_up_area || "-",
+      //   carpet_up_area: property.areas[0]?.carpet_up_area || "-",
+      //   // remarks: property.description || "-",
+      //   contact_person1: property.contacts[0]?.conatact_person_1 || "-",
+      //   contact_person2: property.contacts[0]?.conatact_person_2 || "-",
+      //   company_builder_name: property.contacts[0]?.company_builder_name || "-",
+      //   conatact_person_number_1:
+      //     property.contacts[0]?.conatact_person_number_1 || "-",
+      //   conatact_person_number_2:
+      //     property.contacts[0]?.conatact_person_number_2 || "-",
+      //   builderaddress: property.contacts[0]?.address || "-",
+      //   email: property.contacts[0]?.email || "-",
+      //   reffered_by: property.contacts[0]?.reffered_by || "-",
+      //   contact_person_address: property.contacts[0]?.address || "-",
+      // }));
+
       const transformedProperties = response?.data?.results.map((property) => ({
         furnished_details: property.furnished_details,
         created_by: property.user_name || "-",
         building: property.building_name || "-",
-        property_code: property.property_code || "-",
         address: property.full_address || "-",
         city_name: property.city || "-",
-        location: property.areas[0].area_name || "-",
+        location: property.areas?.[0]?.area_name || "-",
+        property_code: property.property_code || "-",
+        citycode: property.citycode || "-",
         area_name: property.sublocation || "-",
         property_type: property.property_type || "-",
         lease_type: property.LL_outright || "-",
         c_status: property.poss_status || "-",
-        outright_rate_psf: property.areas[0]?.outright_rate_psf || "-",
-        terrace_area: property.areas[0]?.terrace_area || "-",
-        remarks: property.areas[0]?.remarks || "-",
-        rental_psf: property.areas[0]?.rental_psf || "-",
-        company: property.contacts[0]?.company_builder_name || "-",
+        outright_rate_psf: property.areas?.[0]?.outright_rate_psf || "-",
+        rental_psf: property.areas?.[0]?.rental_psf || "-",
+        company: property.contacts?.[0]?.company_builder_name || "-",
         description: property.description || "-",
         outright: property.LL_outright || "-",
         poss_status: property.poss_status || "-",
@@ -159,24 +202,35 @@ const UserDashboard = () => {
         east_west: property.east_west || "-",
         reopen: property.reopen_data || "-",
         created_date: property.created_date || "-",
-        floor: property.areas[0]?.floor_wing_unit_number || "-",
-        car_parking: property.areas[0]?.car_parking || "-",
-        efficiency: property.areas[0]?.efficiency || "-",
-        areas_name: property.areas[0]?.area_name || "-",
-        built_up_area: property.areas[0]?.built_up_area || "-",
-        carpet_up_area: property.areas[0]?.carpet_up_area || "-",
-        // remarks: property.description || "-",
-        contact_person1: property.contacts[0]?.conatact_person_1 || "-",
-        contact_person2: property.contacts[0]?.conatact_person_2 || "-",
-        company_builder_name: property.contacts[0]?.company_builder_name || "-",
+        floor: property.areas[0]?.floor_wing_unit_number || [],
+        // floor: property.areas[0]?.floor_wing_unit_number || "-",;
+        // unit: property.areas?;
+        // floor: property.floor.;
+        // floor: property.areas?.[0]?.floor_wing_unit_number?.[0] || {
+        //   floor: "-",
+        //   wing: "-",
+        //   unit_number: "-",
+        // },
+
+        car_parking: property.areas?.[0]?.car_parking || "-",
+        terrace_area: property.areas?.[0]?.terrace_area || "-",
+        remarks: property.areas?.[0]?.remarks || "-",
+        efficiency: property.areas?.[0]?.efficiency || "-",
+        areas_name: property.areas?.[0]?.area_name || "-",
+        built_up_area: property.areas?.[0]?.built_up_area || "-",
+        carpet_up_area: property.areas?.[0]?.carpet_up_area || "-",
+        contact_person1: property.contacts?.[0]?.conatact_person_1 || "-",
+        contact_person2: property.contacts?.[0]?.conatact_person_2 || "-",
+        company_builder_name:
+          property.contacts?.[0]?.company_builder_name || "-",
         conatact_person_number_1:
-          property.contacts[0]?.conatact_person_number_1 || "-",
+          property.contacts?.[0]?.conatact_person_number_1 || "-",
         conatact_person_number_2:
-          property.contacts[0]?.conatact_person_number_2 || "-",
-        builderaddress: property.contacts[0]?.address || "-",
-        email: property.contacts[0]?.email || "-",
-        reffered_by: property.contacts[0]?.reffered_by || "-",
-        contact_person_address: property.contacts[0]?.address || "-",
+          property.contacts?.[0]?.conatact_person_number_2 || "-",
+        builderaddress: property.contacts?.[0]?.address || "-",
+        email: property.contacts?.[0]?.email || "-",
+        reffered_by: property.contacts?.[0]?.reffered_by || "-",
+        contact_person_address: property.contacts?.[0]?.address || "-",
       }));
       // console.log(transformedProperties);
       setProperties(transformedProperties);
@@ -707,7 +761,7 @@ const UserDashboard = () => {
                           <option>From</option>
                           {FilterArea.map((area) => (
                             <option key={area.property_code}>
-                              {area.area_name}
+                              {area.city_name}
                             </option>
                           ))}
                         </select>
@@ -721,7 +775,7 @@ const UserDashboard = () => {
                           <option>To</option>
                           {FilterArea.map((area) => (
                             <option key={area.property_code}>
-                              {area.area_name}
+                              {area.city_name}
                             </option>
                           ))}
                         </select>
@@ -1206,7 +1260,7 @@ const UserDashboard = () => {
                           </td>
                         </tr>
                       ))
-                        .reverse()
+                      // .reverse()
                     )}
                   </tbody>
                 </table>
